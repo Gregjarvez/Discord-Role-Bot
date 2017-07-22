@@ -35,7 +35,7 @@ client.Dispatcher.on(Events.MESSAGE_CREATE, e => {
     if (e.message.channel.name === 'bots') {
         switch (e.message.content) {
             case '!roles':
-                e.message.reply('The roles that can be added to/removed from your profile are as follow:\nBeginner | Junior | Intermediate | Advanced \nFullstack | Frontend | Backend | DevOps | GraphicsDesigner \nHTML | CSS | JavaScript | PHP | MySQL \nTo modify the roles attributed to your profile use the following commands:\n!addrole and !removerole followed by the correct role.');
+                e.message.reply('The roles that can be added to/removed from your profile are as follow:\n\nBeginner | Junior | Intermediate | Advanced \nFullstack | Frontend | Backend | DevOps | GraphicsDesigner \nHTML | CSS | JavaScript | PHP | MySQL \n\nTo modify the roles attributed to your profile use the following commands:\n!addrole and !removerole followed by the correct role.');
                 break;
             case `${addRole} ${roles[0]}`:
                 matchedUser.assignRole(beginnerRole.id);
