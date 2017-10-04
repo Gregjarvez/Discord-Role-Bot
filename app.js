@@ -1,128 +1,139 @@
 const Discordie = require('discordie');
 const Events = Discordie.Events;
-const client = new Discordie();
+const client = new Discordie({autoReconnect: true});
 
-client.connect({ token: 'MzM4MTAwMTE5ODI2MzMzNjk3.DFQf1g.Hg2sm3F8zoJ4mEaV-WYehC-TE5M' });
+client.connect({ token: '' });
 
 client.Dispatcher.on(Events.GATEWAY_READY, () => {
-    console.log("Connected as: " + client.User.username);
+    console.log(`Connected as: ${client.User.username}`);
 });
 
 client.Dispatcher.on(Events.MESSAGE_CREATE, e => {
-    let userMsgId = e.message.author.id;
+
     const guild = client.Guilds.find(g => g.name === 'CodingPhase');
+    const userMsgId = e.message.author.id;
+    const matchedUser = guild.members.find(userId => userId.id === userMsgId);
+    const addRole = '!addrole ';
+    const removeRole = '!removerole ';
+    const roles = [{'roleName': 'Beginner'}, {'roleName': 'Junior'}, {'roleName': 'Intermediate'}, {'roleName': 'Advanced'}, {'roleName': 'Fullstack'}, {'roleName': 'Frontend'}, {'roleName': 'Backend'}, {'roleName': 'DevOps'}, {'roleName': 'GraphicsDesigner'}, {'roleName': 'HTML'}, {'roleName': 'CSS'}, {'roleName': 'JavaScript'}, {'roleName': 'Node.js'}, {'roleName': 'MongoDB'}, {'roleName': 'PHP'}, {'roleName': 'MySQL'}, {'roleName': 'C#'}, {'roleName': 'Python'}, {'roleName': 'Ruby'}, {'roleName': 'Java'}];
 
-    const beginnerRole = guild.roles.find(r => r.name === 'Beginner');
-    const juniorRole = guild.roles.find(r => r.name === 'Junior');
-    const intermediateRole = guild.roles.find(r => r.name === 'Intermediate');
-    const advancedRole = guild.roles.find(r => r.name === 'Advanced');
-    const fullstackRole = guild.roles.find(r => r.name === 'Fullstack');
-    const frontendRole = guild.roles.find(r => r.name === 'Frontend');
-    const backendRole = guild.roles.find(r => r.name === 'Backend');
-    const devopsRole = guild.roles.find(r => r.name === 'DevOps');
-    const graphicsdesignerRole = guild.roles.find(r => r.name === 'GraphicsDesigner');
-    const htmlRole = guild.roles.find(r => r.name === 'html');
-    const cssRole = guild.roles.find(r => r.name === 'css');
-    const javascriptRole = guild.roles.find(r => r.name === 'javascript');
-    const phpRole = guild.roles.find(r => r.name === 'php');
-    const mysqlRole = guild.roles.find(r => r.name === 'mysql');
+    const sizeCheck = obj => {
+        let size = 0;
+        for (let key in obj) {
+            if (obj.hasOwnProperty(key)) size++;
+        }
+        return size;
+    };
 
-    let matchedUser = guild.members.find(userId => userId.id === userMsgId);
-    const addRole = '!addrole';
-    const removeRole = '!removerole';
-    const roles = ['Beginner','Junior','Intermediate','Advanced','Fullstack','Frontend','Backend','DevOps','GraphicsDesigner','html','css','javascript','php','mysql'];
+    const serverRolesArray = guild.roles.map(role => {
+        return {roleId: `${role.id}`, roleName: `${role.name}`};
+    });
+
+    const availableRoles = role => {
+        return sizeCheck(role) > 0;
+    };
+
+    const filteredRoles = () => {
+        return serverRolesArray.filter(role => {
+            return availableRoles(role);
+        });
+    };
+
+    const roleAllowedCheck = (role, filteredRoles) => {
+        if (role.roleName === filteredRoles.roleName) {
+            return role
+        }
+    };
+
+    const allowedRolesObj = (filteredRoles) => {
+        return roles.find(role => {
+            return roleAllowedCheck(role, filteredRoles);
+        });
+    };
+
+    const cleanedUpRoles = () => filteredRoles().filter(role => {
+        return allowedRolesObj(role);
+    });
+
+    const checkIfRoleExists = userMsg => {
+        return cleanedUpRoles().find(role => {
+            if (role.roleName.toLowerCase() === userMsg) {
+                return role
+            }
+        });
+    };
+
+    const checkIfUserHasRole = roleName => {
+        return matchedUser.roles.find(role => {
+            if (role.name.toLowerCase() === roleName) {
+                return true;
+            }
+        });
+    };
+
+    const checkAndAssignRole = userMsg => {
+        setTimeout(() => {
+            matchedUser.assignRole(checkIfRoleExists(userMsg).roleId).then(msgReply('assigned'));
+        }, 1000);
+    };
+
+    const checkAndUnassignRole = userMsg => {
+        setTimeout(() => {
+            matchedUser.unassignRole(checkIfRoleExists(userMsg).roleId).then(msgReply('unassigned'));
+        }, 500);
+    };
+
+    const skillLevelCheck = userMsg => {
+        return (userMsg === 'beginner') || (userMsg === 'junior') || (userMsg === 'intermediate') || (userMsg === 'advanced');
+    };
+
+    const ifHasRoleUnassign = roleName => {
+        if (checkIfUserHasRole(roleName)) {
+            checkAndUnassignRole(roleName);
+        }
+    };
+
+    const skillRoleUnassignmentAndReassignment = userMsg => {
+        ifHasRoleUnassign('beginner');
+        ifHasRoleUnassign('junior');
+        ifHasRoleUnassign('intermediate');
+        ifHasRoleUnassign('advanced');
+        checkAndAssignRole(userMsg);
+    };
+
+    const msgReply = msg => {
+        if (msg === 'assigned') {
+            e.message.channel.sendMessage('```diff\n+ ROLE ADDED\n```').then(msg => deleteReply(msg));
+        } else {
+            e.message.channel.sendMessage('```diff\n- ROLE REMOVED\n```').then(msg => deleteReply(msg));
+        }
+    };
+
+    const deleteReply = msg => {
+        setTimeout(() => {
+            msg.delete();
+        }, 7000);
+    };
 
     if (e.message.channel.name === 'bots') {
-        switch (e.message.content) {
-            case '!roles':
-                e.message.reply('The roles that can be added to/removed from your profile are as follow:\n\nBeginner | Junior | Intermediate | Advanced \nFullstack | Frontend | Backend | DevOps | GraphicsDesigner \nHTML | CSS | JavaScript | PHP | MySQL \n\nTo modify the roles attributed to your profile use the following commands:\n!addrole and !removerole followed by the correct role.');
-                break;
-            case `${addRole} ${roles[0]}`:
-                matchedUser.assignRole(beginnerRole.id);
-                break;
-            case `${removeRole} ${roles[0]}`:
-                matchedUser.unassignRole(beginnerRole.id);
-                break;
-            case `${addRole} ${roles[1]}`:
-                matchedUser.assignRole(juniorRole.id);
-                break;
-            case `${removeRole} ${roles[1]}`:
-                matchedUser.unassignRole(juniorRole.id);
-                break;
-            case `${addRole} ${roles[2]}`:
-                matchedUser.assignRole(intermediateRole.id);
-                break;
-            case `${removeRole} ${roles[2]}`:
-                matchedUser.unassignRole(intermediateRole.id);
-                break;
-            case `${addRole} ${roles[3]}`:
-                matchedUser.assignRole(advancedRole.id);
-                break;
-            case `${removeRole} ${roles[3]}`:
-                matchedUser.unassignRole(advancedRole.id);
-                break;
-            case `${addRole} ${roles[4]}`:
-                matchedUser.assignRole(fullstackRole.id);
-                break;
-            case `${removeRole} ${roles[4]}`:
-                matchedUser.unassignRole(fullstackRole.id);
-                break;
-            case `${addRole} ${roles[5]}`:
-                matchedUser.assignRole(frontendRole.id);
-                break;
-            case `${removeRole} ${roles[5]}`:
-                matchedUser.unassignRole(frontendRole.id);
-                break;
-            case `${addRole} ${roles[6]}`:
-                matchedUser.assignRole(backendRole.id);
-                break;
-            case `${removeRole} ${roles[6]}`:
-                matchedUser.unassignRole(backendRole.id);
-                break;
-            case `${addRole} ${roles[7]}`:
-                matchedUser.assignRole(devopsRole.id);
-                break;
-            case `${removeRole} ${roles[7]}`:
-                matchedUser.unassignRole(devopsRole.id);
-                break;
-            case `${addRole} ${roles[8]}`:
-                matchedUser.assignRole(graphicsdesignerRole.id);
-                break;
-            case `${removeRole} ${roles[8]}`:
-                matchedUser.unassignRole(graphicsdesignerRole.id);
-                break;
-            case `${addRole} ${roles[9]}`:
-                matchedUser.assignRole(htmlRole.id);
-                break;
-            case `${removeRole} ${roles[9]}`:
-                matchedUser.unassignRole(htmlRole.id);
-                break;
-            case `${addRole} ${roles[10]}`:
-                matchedUser.assignRole(cssRole.id);
-                break;
-            case `${removeRole} ${roles[10]}`:
-                matchedUser.unassignRole(cssRole.id);
-                break;
-            case `${addRole} ${roles[11]}`:
-                matchedUser.assignRole(javascriptRole.id);
-                break;
-            case `${removeRole} ${roles[11]}`:
-                matchedUser.unassignRole(javascriptRole.id);
-                break;
-            case `${addRole} ${roles[12]}`:
-                matchedUser.assignRole(phpRole.id);
-                break;
-            case `${removeRole} ${roles[12]}`:
-                matchedUser.unassignRole(phpRole.id);
-                break;
-            case `${addRole} ${roles[13]}`:
-                matchedUser.assignRole(mysqlRole.id);
-                break;
-            case `${removeRole} ${roles[13]}`:
-                matchedUser.unassignRole(mysqlRole.id);
-                break;
-            default:
-                break;
+        if (e.message.content.toLowerCase() === '!roles') {
+            e.message.channel.sendMessage('```\nThe roles that can be added to/removed from your profile are as follow:\n\nBeginner | Junior | Intermediate | Advanced\nFullstack | Frontend | Backend | DevOps | GraphicsDesigner\nHTML | CSS | JavaScript | Node.js | MongoDB\nPHP | MySQL | C# | Python | Ruby | Java\n\nTo modify the roles attributed to your profile use the following commands:\n!addrole and !removerole followed by the correct role.\n\nRequests for different languages to be added must be directed to @Staff.\n\nWe won\'t be adding any frameworks or libraries as there are far too many to add for each language.\n\nWe may add certain frameworks or libraries that are requested frequently.\n```');
+        }
+
+        let msgIncluded;
+        if (e.message.content.toLowerCase().includes(addRole)) {
+            msgIncluded = addRole;
+        } else if (e.message.content.toLowerCase().includes(removeRole)) {
+            msgIncluded = removeRole;
+        }
+        const userMsg = e.message.content.replace(msgIncluded, '').toLowerCase();
+
+        if ((checkIfRoleExists(userMsg)) && (msgIncluded === addRole) && (skillLevelCheck(userMsg))) {
+            skillRoleUnassignmentAndReassignment(userMsg);
+        } else if ((checkIfRoleExists(userMsg)) && (msgIncluded === addRole)) {
+            checkAndAssignRole(userMsg);
+        } else if ((checkIfRoleExists(userMsg)) && (msgIncluded === removeRole)) {
+            checkAndUnassignRole(userMsg);
         }
     }
 });
